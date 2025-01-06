@@ -1,0 +1,8 @@
+[package]
+name = "stylus-context-provider"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libruskel = "0.0.9"
+mcp-sdk = {path = "../mcp-sdk"}
