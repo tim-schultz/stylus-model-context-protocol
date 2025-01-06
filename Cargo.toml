@@ -4,5 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.95"
 libruskel = "0.0.9"
+libtenx = {path = "../tenx/crates/libtenx"}
 mcp-sdk = {path = "../mcp-sdk"}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+mcp-client-rs = { git = "https://github.com/tim-schultz/mcp-client-rs.git" }
+eng-assistant = { path = "../eng-assistant" }
+log = "0.4.22"
+env_logger = "0.11.4"
+tokio = { version = "1.0", features = ["full"] }
