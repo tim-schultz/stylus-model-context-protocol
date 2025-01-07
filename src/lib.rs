@@ -1,5 +1,4 @@
 use libruskel::{Result, Ruskel};
-use libtenx;
 
 mod tools;
 
@@ -55,7 +54,7 @@ impl StylusContract {
         let skeleton = self.ruskel.render(true, true, false)?;
 
         // Get the raw JSON representation
-        let raw_json = self.ruskel.raw_json()?;
+        let _raw_json = self.ruskel.raw_json()?;
 
         // Combine all information into a detailed report
         Ok(format!(

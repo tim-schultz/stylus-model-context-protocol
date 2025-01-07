@@ -3,6 +3,7 @@ use std::error::Error;
 use serde_json::Value;
 
 /// Represents the base trait for all tools
+#[allow(dead_code)]
 pub trait BaseTool {
     /// Tool name that matches the regex ^[a-zA-Z0-9_-]{1,64}$
     fn name(&self) -> &str;

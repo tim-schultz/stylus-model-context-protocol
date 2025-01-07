@@ -1,10 +1,13 @@
 use anyhow::{Context, Result};
+use contract_components::ContractComponents;
 use eng_assistant::assistant::Assistant;
 use env_logger::Env;
 use log::info;
-use mcp_client_rs::{ClientError, ProtocolManager};
+
 use std::env;
 use stylus_context_provider::StylusContract;
+
+mod contract_components;
 
 pub const MODEL: &str = "claude-3-5-sonnet-20241022";
 pub const TASK_COMPLETE: &str = "TASK_COMPLETE";
@@ -18,20 +21,6 @@ async fn main() -> Result<()> {
         .get(1)
         .map(|s| s.as_str())
         .expect("You must pass a directory");
-
-    // let mut protocol_manager = ProtocolManager::new();
-
-    // protocol_manager
-    //     .add_protocol(
-    //         "sequential-thinking",
-    //         vec!["-y", "@modelcontextprotocol/server-sequential-thinking"],
-    //         None,
-    //     )
-    //     .await?;
-
-    // let client_ids = &["sequential-thinking".to_string()];
-
-    // let planning_prompt_tools = protocol_manager.get_tools_for_clients(Some(client_ids));
 
     let planning_system_prompt = r#"
     You are Claude, an AI assistant powered by Anthropic's Claude-3.5-Sonnet model, specializing in software architecture. Your capabilities include:
@@ -85,23 +74,48 @@ async fn main() -> Result<()> {
 
     Desired Output:
     <event>
-        event Bid(address indexed sender, uint256 amount, string prompt);
+        <description>
+            Event with signature `Bid(address,uint256,string)` and selector `0xf22665033e06efbfec151f6a7c6c2d108d74c528a69e4f1f98e5101219c5f2fc`.
+        </description>
+        <signature>
+            event Bid(address indexed sender, uint256 amount, string prompt);
+        </signature>
     </event>
 
     <error>
-        error AlreadyStarted();
+        <description>
+            Custom error with signature `AlreadyStarted()` and selector `0x1fbde445`.
+        </description>
+        <signature>
+            error AlreadyStarted();
+        </signature>
     </error>
 
     <storage_variable>
-        pub active_prompt: stylus_sdk::storage::StorageString,
+        <description></description>
+        <signature>
+            pub active_prompt: stylus_sdk::storage::StorageString,
+        </signature>
     </storage_variable>
 
     <read_function>
-        pub fn active_prompt(&self) -> Result<String, EnglishAuctionError> {}
+        <description>
+            Returns the current active prompt in the auction
+            @return The active prompt string
+        </description>
+        <signature>
+            pub fn active_prompt(&self) -> Result<String, EnglishAuctionError> {}
+        </signature>
     </read_function>
 
     <write_function>
-        pub fn start(&mut self) -> Result<(), EnglishAuctionError> {}
+        <description>
+            Starts the auction
+            @dev Can only be called by the seller
+        </description>
+        <signature>
+            pub fn start(&mut self) -> Result<(), EnglishAuctionError> {}
+        </signature>
     </write_function>
 
     Important: Output the implementations of every Event, Error, Storage Variable, read function, and write function in the format outlined above.
@@ -118,15 +132,82 @@ async fn main() -> Result<()> {
     info!("Claude instance initialized with model: {}", MODEL);
 
     let contract = StylusContract::new(dir);
-    let contract_skeletion = contract.analyze()?;
+    let contract_skeleton = contract.analyze()?;
     let prompt = format!(
         "Claude, analyze the following Rust smart contract: \n{}",
-        contract_skeletion
+        contract_skeleton
     );
 
     let response = assistant.send_message(&prompt, true).await?;
+    info!("Response: {:?}", response);
+    let text = response
+        .content
+        .iter()
+        .find_map(|content| match content {
+            anthropic_sdk::ContentItem::Text { text } => Some(text),
+            _ => None,
+        })
+        .context("No text content in response")?;
 
-    dbg!(response);
+    let components = ContractComponents::parse_response(text)?;
+
+    // Create markdown content
+    let mut md_content = String::new();
+
+    md_content.push_str("# Contract Analysis\n\n");
+
+    md_content.push_str(&format!("## Events ({})\n\n", components.events.len()));
+    for event in &components.events {
+        md_content.push_str(&format!(
+            "### Description\n{}\n\n### Signature\n```solidity\n{}\n```\n\n",
+            event.description, event.signature
+        ));
+    }
+
+    md_content.push_str(&format!("## Errors ({})\n\n", components.errors.len()));
+    for error in &components.errors {
+        md_content.push_str(&format!(
+            "### Description\n{}\n\n### Signature\n```solidity\n{}\n```\n\n",
+            error.description, error.signature
+        ));
+    }
+
+    md_content.push_str(&format!(
+        "## Storage Variables ({})\n\n",
+        components.storage_variables.len()
+    ));
+    for var in &components.storage_variables {
+        md_content.push_str(&format!(
+            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
+            var.description, var.signature
+        ));
+    }
+
+    md_content.push_str(&format!(
+        "## Read Functions ({})\n\n",
+        components.read_functions.len()
+    ));
+    for func in &components.read_functions {
+        md_content.push_str(&format!(
+            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
+            func.description, func.signature
+        ));
+    }
+
+    md_content.push_str(&format!(
+        "## Write Functions ({})\n\n",
+        components.write_functions.len()
+    ));
+    for func in &components.write_functions {
+        md_content.push_str(&format!(
+            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
+            func.description, func.signature
+        ));
+    }
+
+    let output_path = format!("{}/analysis.md", dir);
+    std::fs::write(&output_path, md_content)?;
+    info!("Analysis saved to {}", output_path);
 
     Ok(())
 }
