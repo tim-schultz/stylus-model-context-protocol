@@ -2,21 +2,33 @@ use alloy::{
     contract::{ContractInstance, Interface},
     json_abi::JsonAbi,
     primitives::Address,
-    providers::Provider,
+    providers::{Provider, RootProvider},
+    transports::BoxTransport,
 };
 use anyhow::{anyhow, Result};
 use regex::Regex;
 use serde_json::Value;
 
-pub struct ContractInteraction {
+pub struct ContractInteraction<P: Provider> {
     human_readable_abi: Value,
+    #[allow(dead_code)]
+    contract_instance: ContractInstance<Interface, P>,
 }
 
-impl ContractInteraction {
-    pub fn new(interface: String) -> Self {
-        Self {
-            human_readable_abi: Self::interface_to_human_readable(&interface).unwrap(),
-        }
+impl<P: Provider> ContractInteraction<P> {
+    pub fn new(interface: String, address: Address, provider: P) -> Result<Self> {
+        let human_readable_abi =
+            ContractInteraction::<RootProvider<BoxTransport>>::interface_to_human_readable(
+                &interface,
+            )?;
+
+        let contract_instance =
+            Self::build_contract(address, human_readable_abi.clone(), provider)?;
+
+        Ok(Self {
+            human_readable_abi,
+            contract_instance,
+        })
     }
 
     pub fn get_abi(&self) -> &Value {
@@ -24,18 +36,20 @@ impl ContractInteraction {
     }
 
     /// Creates a contract instance from a contract address and JSON ABI.
-    #[allow(dead_code)]
-    pub fn build_contract<P: Provider>(
+    pub fn build_contract(
         address: Address,
         abi: Value,
         provider: P,
     ) -> Result<ContractInstance<Interface, P>> {
         let abi: JsonAbi = serde_json::from_value(abi).map_err(|e| anyhow!(e))?;
         let interface = Interface::new(abi);
-        Ok(ContractInstance::new(address, provider, interface))
+        let instance = ContractInstance::new(address, provider, interface);
+        Ok(instance)
     }
+}
 
-    pub fn interface_to_human_readable(interface: &str) -> Result<Value> {
+impl ContractInteraction<RootProvider<BoxTransport>> {
+    fn interface_to_human_readable(interface: &str) -> Result<Value> {
         let mut signatures = Vec::new();
 
         // Match function declarations
@@ -109,8 +123,6 @@ impl ContractInteraction {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use alloy::providers::{Provider, RootProvider};
-    use alloy::transports::BoxTransport;
 
     #[test]
     fn test_interface_to_human_readable() {
@@ -174,7 +186,11 @@ mod tests {
             }
         "#;
 
-        let result = ContractInteraction::interface_to_human_readable(interface).unwrap();
+        let result =
+            ContractInteraction::<RootProvider<BoxTransport>>::interface_to_human_readable(
+                interface,
+            )
+            .unwrap();
 
         let signatures = result.as_array().unwrap();
 
@@ -195,7 +211,8 @@ mod tests {
 
     #[test]
     fn test_interface_to_human_readable_empty() {
-        let result = ContractInteraction::interface_to_human_readable("");
+        let result =
+            ContractInteraction::<RootProvider<BoxTransport>>::interface_to_human_readable("");
         assert!(result.is_err());
     }
 

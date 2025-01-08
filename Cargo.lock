@@ -6396,6 +6396,7 @@ name = "stylus-context-provider"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "alloy-transport",
  "anthropic-sdk",
  "anyhow",
  "eng-assistant",
@@ -6409,6 +6410,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
 ]
 
 [[package]]

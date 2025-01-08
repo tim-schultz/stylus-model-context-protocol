@@ -18,3 +18,5 @@ tokio = { version = "1.0", features = ["full"] }
 regex = "1.10.3"
 anthropic-sdk = { git = "https://github.com/tim-schultz/anthropic-sdk.git" }
 alloy = { version = "0.9.2", features = ["full"] }
+alloy-transport = "0.9.2"
+url = "2.5.0"

@@ -1,9 +1,17 @@
+use alloy::{
+    primitives::Address,
+    providers::RootProvider,
+    rpc::client::RpcClient,
+    transports::{http, BoxTransport},
+};
 use anyhow::{Context, Result};
 use contract_components::ContractComponents;
 use contract_interactions::ContractInteraction;
 use eng_assistant::assistant::Assistant;
 use env_logger::Env;
 use log::info;
+use std::str::FromStr;
+use url::Url;
 
 use std::env;
 use stylus_context_provider::StylusContract;
@@ -133,8 +141,20 @@ async fn main() -> Result<()> {
     .context("Failed to initialize Claude")?;
     info!("Claude instance initialized with model: {}", MODEL);
 
-    let contract_interaction = ContractInteraction::new("interaction".to_string());
-    dbg!(&contract_interaction.get_abi());
+    let address = Address::from_str(std::env::var("CONTRACT_ADDRESS").unwrap().as_str())?;
+    let rpc_url = std::env::var("RPC_URL").expect("RPC_URL must be set");
+    let rpc_url = Url::parse(&rpc_url).expect("Failed to parse RPC URL");
+    let transport = http::Http::new(rpc_url);
+    let boxed_transport = BoxTransport::new(transport);
+    let client = RpcClient::new(boxed_transport, false);
+    let provider = RootProvider::new(client);
+
+    let contract_interaction = ContractInteraction::<RootProvider<BoxTransport>>::new(
+        "interaction".to_string(),
+        address,
+        provider,
+    )?;
+    dbg!(contract_interaction.get_abi());
 
     // Execute cargo stylus export-abi command
     let output = std::process::Command::new("cargo")
