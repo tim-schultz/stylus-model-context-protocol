@@ -131,6 +131,17 @@ async fn main() -> Result<()> {
     .context("Failed to initialize Claude")?;
     info!("Claude instance initialized with model: {}", MODEL);
 
+    // Execute cargo stylus export-abi command
+    let output = std::process::Command::new("cargo")
+        .arg("stylus")
+        .arg("export-abi")
+        .current_dir(dir)
+        .output()
+        .context("Failed to execute cargo stylus export-abi")?;
+
+    let abi_output =
+        String::from_utf8(output.stdout).context("Failed to parse command output as UTF-8")?;
+
     let contract = StylusContract::new(dir);
     let contract_skeleton = contract.analyze()?;
     let prompt = format!(
@@ -138,76 +149,21 @@ async fn main() -> Result<()> {
         contract_skeleton
     );
 
+    let output_path = format!("{}/analysis.md", dir);
+    info!("Generating new analysis");
     let response = assistant.send_message(&prompt, true).await?;
     info!("Response: {:?}", response);
     let text = response
         .content
         .iter()
         .find_map(|content| match content {
-            anthropic_sdk::ContentItem::Text { text } => Some(text),
+            anthropic_sdk::ContentItem::Text { text } => Some(text.clone()),
             _ => None,
         })
         .context("No text content in response")?;
 
-    let components = ContractComponents::parse_response(text)?;
-
-    // Create markdown content
-    let mut md_content = String::new();
-
-    md_content.push_str("# Contract Analysis\n\n");
-
-    md_content.push_str(&format!("## Events ({})\n\n", components.events.len()));
-    for event in &components.events {
-        md_content.push_str(&format!(
-            "### Description\n{}\n\n### Signature\n```solidity\n{}\n```\n\n",
-            event.description, event.signature
-        ));
-    }
-
-    md_content.push_str(&format!("## Errors ({})\n\n", components.errors.len()));
-    for error in &components.errors {
-        md_content.push_str(&format!(
-            "### Description\n{}\n\n### Signature\n```solidity\n{}\n```\n\n",
-            error.description, error.signature
-        ));
-    }
-
-    md_content.push_str(&format!(
-        "## Storage Variables ({})\n\n",
-        components.storage_variables.len()
-    ));
-    for var in &components.storage_variables {
-        md_content.push_str(&format!(
-            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
-            var.description, var.signature
-        ));
-    }
-
-    md_content.push_str(&format!(
-        "## Read Functions ({})\n\n",
-        components.read_functions.len()
-    ));
-    for func in &components.read_functions {
-        md_content.push_str(&format!(
-            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
-            func.description, func.signature
-        ));
-    }
-
-    md_content.push_str(&format!(
-        "## Write Functions ({})\n\n",
-        components.write_functions.len()
-    ));
-    for func in &components.write_functions {
-        md_content.push_str(&format!(
-            "### Description\n{}\n\n### Signature\n```rust\n{}\n```\n\n",
-            func.description, func.signature
-        ));
-    }
-
-    let output_path = format!("{}/analysis.md", dir);
-    std::fs::write(&output_path, md_content)?;
-    info!("Analysis saved to {}", output_path);
+    let components = ContractComponents::new(&text, Some(&abi_output));
+    components.generate_markdown(&output_path)?;
 
     Ok(())
 }
