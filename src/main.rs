@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use contract_components::ContractComponents;
+use contract_interactions::ContractInteraction;
 use eng_assistant::assistant::Assistant;
 use env_logger::Env;
 use log::info;
@@ -8,6 +9,7 @@ use std::env;
 use stylus_context_provider::StylusContract;
 
 mod contract_components;
+mod contract_interactions;
 
 pub const MODEL: &str = "claude-3-5-sonnet-20241022";
 pub const TASK_COMPLETE: &str = "TASK_COMPLETE";
@@ -130,6 +132,9 @@ async fn main() -> Result<()> {
     )
     .context("Failed to initialize Claude")?;
     info!("Claude instance initialized with model: {}", MODEL);
+
+    let contract_interaction = ContractInteraction::new("interaction".to_string());
+    dbg!(&contract_interaction.get_abi());
 
     // Execute cargo stylus export-abi command
     let output = std::process::Command::new("cargo")
