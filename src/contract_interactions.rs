@@ -1,15 +1,22 @@
+use std::str::FromStr;
+
 use alloy::{
     contract::{ContractInstance, Interface},
     dyn_abi::{DynSolValue, JsonAbiExt},
     json_abi::JsonAbi,
     primitives::{Address, Bytes},
     providers::{Provider, RootProvider},
-    rpc::types::{TransactionInput, TransactionRequest},
-    transports::BoxTransport,
+    rpc::{
+        client::RpcClient,
+        types::{TransactionInput, TransactionRequest},
+    },
+    transports::{http, BoxTransport},
 };
 use anyhow::{anyhow, Result};
+use dotenv::dotenv;
 use regex::Regex;
 use serde_json::Value;
+use url::Url;
 
 pub struct ContractInteraction<P: Provider> {
     human_readable_abi: Value,
@@ -17,7 +24,29 @@ pub struct ContractInteraction<P: Provider> {
     contract_instance: ContractInstance<Interface, P>,
 }
 
-impl<P: Provider> ContractInteraction<P> {
+impl ContractInteraction<RootProvider<BoxTransport>> {
+    pub fn new(interface: &str) -> Result<Self> {
+        dotenv().ok();
+        let address = Address::from_str(std::env::var("CONTRACT_ADDRESS").unwrap().as_str())?;
+        let rpc_url = std::env::var("RPC_URL").expect("RPC_URL must be set");
+        let rpc_url = Url::parse(&rpc_url).expect("Failed to parse RPC URL");
+        let transport = http::Http::new(rpc_url);
+        let boxed_transport = BoxTransport::new(transport);
+        let client = RpcClient::new(boxed_transport, false);
+        let provider = RootProvider::new(client);
+
+        let human_readable_abi = Self::interface_to_human_readable(interface)?;
+        dbg!(human_readable_abi.clone());
+
+        let contract_instance =
+            ContractInteraction::build_contract(address, human_readable_abi.clone(), provider)?;
+
+        Ok(Self {
+            human_readable_abi,
+            contract_instance,
+        })
+    }
+
     /// Calls a contract function with given parameters and value
     #[allow(dead_code)]
     async fn call_function(
@@ -65,44 +94,44 @@ impl<P: Provider> ContractInteraction<P> {
 
         Ok(())
     }
-    pub fn new(interface: String, address: Address, provider: P) -> Result<Self> {
-        let human_readable_abi =
-            ContractInteraction::<RootProvider<BoxTransport>>::interface_to_human_readable(
-                &interface,
-            )?;
-
-        let contract_instance =
-            Self::build_contract(address, human_readable_abi.clone(), provider)?;
-
-        Ok(Self {
-            human_readable_abi,
-            contract_instance,
-        })
-    }
 
     pub fn get_abi(&self) -> &Value {
         &self.human_readable_abi
     }
+}
 
+impl<P: Provider> ContractInteraction<P> {
     /// Creates a contract instance from a contract address and JSON ABI.
     pub fn build_contract(
         address: Address,
         abi: Value,
         provider: P,
     ) -> Result<ContractInstance<Interface, P>> {
-        let abi: JsonAbi = serde_json::from_value(abi).map_err(|e| anyhow!(e))?;
+        // Convert the Value array into Vec<&str>
+
+        let abi_strings = abi
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("ABI is not an array"))?
+            .iter()
+            .map(|v| v.as_str().unwrap_or_default())
+            .collect::<Vec<&str>>();
+
+        let abi = match JsonAbi::parse(abi_strings) {
+            Ok(abi) => abi,
+            Err(e) => return Err(anyhow!("Failed to parse ABI: {}", e)),
+        };
+        dbg!(&abi);
         let interface = Interface::new(abi);
         let instance = ContractInstance::new(address, provider, interface);
         Ok(instance)
     }
-}
-
-impl ContractInteraction<RootProvider<BoxTransport>> {
     fn interface_to_human_readable(interface: &str) -> Result<Value> {
         let mut signatures = Vec::new();
 
-        // Match function declarations
-        let fn_regex = Regex::new(r"function\s+(\w+)\s*\((.*?)\)(?:\s+(?:external|public|private|internal))?\s*(?:(?:pure|view|payable))?\s*(?:returns\s*\((.*?)\))?").unwrap();
+        // Match function declarations including 'external view' and memory keywords
+        let fn_regex = Regex::new(
+            r"function\s+(\w+)\s*\((.*?)\)(?:\s+(?:external|public))?\s*(?:(?:pure|view|payable))?\s*(?:returns\s*\((.*?)\))?"
+        ).unwrap();
 
         // Match error declarations
         let error_regex = Regex::new(r"error\s+(\w+)\s*\((.*?)\)").unwrap();
@@ -116,16 +145,45 @@ impl ContractInteraction<RootProvider<BoxTransport>> {
                 let inputs = caps.get(2).map_or("", |m| m.as_str());
                 let outputs = caps.get(3).map_or("", |m| m.as_str());
 
-                let mut signature = format!("function {}({})", name, Self::clean_params(inputs));
+                let mut signature = format!("function {}", name);
 
-                if line.contains("view") {
-                    signature.push_str(" view");
-                } else if line.contains("pure") {
-                    signature.push_str(" pure");
+                // Handle inputs
+                if inputs.is_empty() {
+                    signature.push_str("()");
+                } else {
+                    // Add memory/calldata keywords for string parameters
+                    let processed_inputs = inputs
+                        .split(',')
+                        .map(|param| {
+                            let param = param.trim();
+                            if param.contains("string") {
+                                if line.contains("external") {
+                                    "string calldata".to_string()
+                                } else {
+                                    "string memory".to_string()
+                                }
+                            } else {
+                                param.to_string()
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                        .join(", ");
+                    signature.push_str(&format!("({})", processed_inputs));
                 }
 
+                // Add view if present
+                if line.contains("view") {
+                    signature.push_str(" view");
+                }
+
+                // Handle returns with memory keyword for string
                 if !outputs.is_empty() {
-                    signature.push_str(&format!(" returns ({})", Self::clean_params(outputs)));
+                    let processed_outputs = if outputs.contains("string") {
+                        "string memory"
+                    } else {
+                        outputs
+                    };
+                    signature.push_str(&format!(" returns ({})", processed_outputs));
                 }
 
                 signatures.push(signature);
@@ -136,7 +194,7 @@ impl ContractInteraction<RootProvider<BoxTransport>> {
                 let name = caps.get(1).map_or("", |m| m.as_str());
                 let params = caps.get(2).map_or("", |m| m.as_str());
 
-                let signature = format!("error {}({})", name, Self::clean_params(params));
+                let signature = format!("error {}({})", name, params);
                 signatures.push(signature);
             }
         }
@@ -145,27 +203,9 @@ impl ContractInteraction<RootProvider<BoxTransport>> {
             return Err(anyhow!("No functions or errors found in interface"));
         }
 
-        Ok(serde_json::Value::Array(
-            signatures
-                .into_iter()
-                .map(serde_json::Value::String)
-                .collect(),
+        Ok(Value::Array(
+            signatures.into_iter().map(Value::String).collect(),
         ))
-    }
-
-    fn clean_params(params: &str) -> String {
-        params
-            .split(',')
-            .map(|p| {
-                let parts: Vec<&str> = p.split_whitespace().collect();
-                if parts.len() >= 2 {
-                    format!("{} {}", parts[0], parts[1])
-                } else {
-                    p.trim().to_string()
-                }
-            })
-            .collect::<Vec<String>>()
-            .join(", ")
     }
 }
 
@@ -278,13 +318,30 @@ mod tests {
         let provider = MockProvider;
 
         let abi = serde_json::json!([
-            {
-                "inputs": [],
-                "name": "activePrompt",
-                "outputs": [{"type": "string"}],
-                "stateMutability": "view",
-                "type": "function"
-            }
+            "function activePrompt() view returns (string memory)",
+            "function getImage(uint256 image_id) view returns (string memory)",
+            "function getImageOwner(address owner) view returns (uint256)",
+            "function aiSeller() view returns (address)",
+            "function endAt() view returns (uint256)",
+            "function started() view returns (bool)",
+            "function ended() view returns (bool)",
+            "function highestBidder() view returns (address)",
+            "function highestBid() view returns (uint256)",
+            "function bids(address bidder) view returns (uint256)",
+            "function initialize(uint256 starting_bid)",
+            "function start()",
+            "function bid(string calldata)",
+            "function imageGenerationStatus(uint256 token_id, bool active)",
+            "function withdraw()",
+            "function end()",
+            "error AlreadyInitialized()",
+            "error AlreadyStarted()",
+            "error NotSeller()",
+            "error AuctionEnded()",
+            "error BidTooLow()",
+            "error NotStarted()",
+            "error NotEnded()",
+            "error UnAuthorizedUpdate()",
         ]);
 
         let result = ContractInteraction::build_contract(address, abi, provider);
