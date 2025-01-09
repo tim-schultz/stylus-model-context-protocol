@@ -40,11 +40,6 @@ async fn main() -> Result<()> {
     let abi_output =
         String::from_utf8(abi_export.stdout).context("Failed to parse command output as UTF-8")?;
 
-    // Instantiate Smart Contract Interaction
-    let contract_interaction = ContractInteraction::<RootProvider<BoxTransport>>::new(&abi_output)?;
-    let abi = contract_interaction.get_abi();
-    dbg!(&abi);
-
     // Instantiate Stylus Contract - Used to parse rust smart contract code and get as much information about the contract as possible
     let contract = StylusContract::new(dir);
     // Use ruskel to parse the rust API from the contract and get a skeleton of the contract and comments
@@ -80,9 +75,13 @@ async fn main() -> Result<()> {
         .context("No text content in response")?;
 
     // Use structured output from Claude Assistant to parse different aspects of the contract
-    let components = ContractComponents::new(&text, Some(&abi_output));
+    let contract_components = ContractComponents::new(&text, Some(&abi_output));
 
-    components.generate_markdown("./test.md")?;
+    // Instantiate Smart Contract Interaction
+    let contract_interaction =
+        ContractInteraction::<RootProvider<BoxTransport>>::new(&abi_output, contract_components)?;
+
+    dbg!(contract_interaction.build_contract_claude_tool_definitions()?);
 
     Ok(())
 }

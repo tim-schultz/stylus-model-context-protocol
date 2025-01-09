@@ -1,0 +1,304 @@
+[src/contract_interactions.rs:53:9] &self.contract_instance.abi() = JsonAbi {
+    constructor: None,
+    fallback: None,
+    receive: None,
+    functions: {
+        "activePrompt": [
+            Function {
+                name: "activePrompt",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "string",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "aiSeller": [
+            Function {
+                name: "aiSeller",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "address",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "bid": [
+            Function {
+                name: "bid",
+                inputs: [
+                    Param {
+                        ty: "string",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+        "bids": [
+            Function {
+                name: "bids",
+                inputs: [
+                    Param {
+                        ty: "address",
+                        name: "bidder",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "end": [
+            Function {
+                name: "end",
+                inputs: [],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+        "endAt": [
+            Function {
+                name: "endAt",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "ended": [
+            Function {
+                name: "ended",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "bool",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "getImage": [
+            Function {
+                name: "getImage",
+                inputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "image_id",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [
+                    Param {
+                        ty: "string",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "getImageOwner": [
+            Function {
+                name: "getImageOwner",
+                inputs: [
+                    Param {
+                        ty: "address",
+                        name: "owner",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "highestBid": [
+            Function {
+                name: "highestBid",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "highestBidder": [
+            Function {
+                name: "highestBidder",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "address",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "imageGenerationStatus": [
+            Function {
+                name: "imageGenerationStatus",
+                inputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "token_id",
+                        components: [],
+                        internal_type: None,
+                    },
+                    Param {
+                        ty: "bool",
+                        name: "active",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+        "initialize": [
+            Function {
+                name: "initialize",
+                inputs: [
+                    Param {
+                        ty: "uint256",
+                        name: "starting_bid",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+        "start": [
+            Function {
+                name: "start",
+                inputs: [],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+        "started": [
+            Function {
+                name: "started",
+                inputs: [],
+                outputs: [
+                    Param {
+                        ty: "bool",
+                        name: "",
+                        components: [],
+                        internal_type: None,
+                    },
+                ],
+                state_mutability: View,
+            },
+        ],
+        "withdraw": [
+            Function {
+                name: "withdraw",
+                inputs: [],
+                outputs: [],
+                state_mutability: NonPayable,
+            },
+        ],
+    },
+    events: {},
+    errors: {
+        "AlreadyInitialized": [
+            Error {
+                name: "AlreadyInitialized",
+                inputs: [],
+            },
+        ],
+        "AlreadyStarted": [
+            Error {
+                name: "AlreadyStarted",
+                inputs: [],
+            },
+        ],
+        "AuctionEnded": [
+            Error {
+                name: "AuctionEnded",
+                inputs: [],
+            },
+        ],
+        "BidTooLow": [
+            Error {
+                name: "BidTooLow",
+                inputs: [],
+            },
+        ],
+        "NotEnded": [
+            Error {
+                name: "NotEnded",
+                inputs: [],
+            },
+        ],
+        "NotSeller": [
+            Error {
+                name: "NotSeller",
+                inputs: [],
+            },
+        ],
+        "NotStarted": [
+            Error {
+                name: "NotStarted",
+                inputs: [],
+            },
+        ],
+        "UnAuthorizedUpdate": [
+            Error {
+                name: "UnAuthorizedUpdate",
+                inputs: [],
+            },
+        ],
+    },
+}

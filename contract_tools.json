@@ -1,0 +1,48 @@
+[
+  {
+    "description": "Returns the current active prompt in the auction",
+    "input_schema": {
+      "properties": {},
+      "required": [],
+      "type": "object"
+    },
+    "name": "activePrompt"
+  },
+  {
+    "description": "Places a bid in the auction",
+    "input_schema": {
+      "properties": {
+        "prompt": {
+          "description": "Parameter of type string",
+          "type": "string"
+        },
+        "value": {
+          "description": "Amount of native currency to send with transaction",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt",
+        "value"
+      ],
+      "type": "object"
+    },
+    "name": "bid"
+  },
+  {
+    "description": "Returns the bid amount for a specific bidder",
+    "input_schema": {
+      "properties": {
+        "bidder": {
+          "description": "Parameter of type address",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bidder"
+      ],
+      "type": "object"
+    },
+    "name": "bids"
+  }
+]

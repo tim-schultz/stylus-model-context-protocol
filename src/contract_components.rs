@@ -84,6 +84,7 @@ impl ContractComponents {
         components
     }
 
+    #[allow(dead_code)]
     pub fn generate_markdown(self, output_path: &str) -> Result<()> {
         // Create markdown content
         let mut md_content = String::new();

@@ -1,0 +1,202 @@
+[src/contract_interactions.rs:54:9] &self.contract_components = ContractComponents {
+    events: [
+        ComponentDetails {
+            description: "Event with signature `Start()` and selector `0x1b55ba3aa851a46be3b365aee5b5c140edd620d578922f3e8466d2cbd96f954b`.",
+            rust_signature: "event Start();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Event with signature `Bid(address,uint256,string)` and selector `0xf22665033e06efbfec151f6a7c6c2d108d74c528a69e4f1f98e5101219c5f2fc`.",
+            rust_signature: "event Bid(address indexed sender, uint256 amount, string prompt);",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Event with signature `Withdraw(address,uint256)` and selector `0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364`.",
+            rust_signature: "event Withdraw(address indexed bidder, uint256 amount);",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Event with signature `End(address,uint256,string,uint256)` and selector `0xe8480788631daab178cfa9a790c92677f4c2c765c9af9f0117a860cfd9c2fca1`.",
+            rust_signature: "event End(address winner, uint256 amount, string prompt, uint256 image_id);",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Event with signature `ImageGenerationUpdate(uint256,bool)` and selector `0x5b002366b3aba9ba11e2ce224a9f3cd5d3bdc65a863f866e5fd0a272d3e8b99c`.",
+            rust_signature: "event ImageGenerationUpdate(uint256 token_id, bool active);",
+            solidity_signature: "",
+        },
+    ],
+    errors: [
+        ComponentDetails {
+            description: "Custom error with signature `AlreadyInitialized()` and selector `0x0dc149f0`.",
+            rust_signature: "error AlreadyInitialized();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `AlreadyStarted()` and selector `0x1fbde445`.",
+            rust_signature: "error AlreadyStarted();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `NotSeller()` and selector `0x5ec82351`.",
+            rust_signature: "error NotSeller();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `AuctionEnded()` and selector `0xa0e92984`.",
+            rust_signature: "error AuctionEnded();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `BidTooLow()` and selector `0xa0d26eb6`.",
+            rust_signature: "error BidTooLow();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `NotStarted()` and selector `0x6f312cbd`.",
+            rust_signature: "error NotStarted();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `NotEnded()` and selector `0xd3018d18`.",
+            rust_signature: "error NotEnded();",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Custom error with signature `UnAuthorizedUpdate()` and selector `0x1714dd95`.",
+            rust_signature: "error UnAuthorizedUpdate();",
+            solidity_signature: "",
+        },
+    ],
+    storage_variables: [
+        ComponentDetails {
+            description: "Stores the current active prompt in the auction",
+            rust_signature: "pub active_prompt: stylus_sdk::storage::StorageString,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the last prompt used in the auction",
+            rust_signature: "pub last_prompt: stylus_sdk::storage::StorageString,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the address of the AI seller",
+            rust_signature: "pub ai_seller: stylus_sdk::storage::StorageAddress,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the auction end timestamp",
+            rust_signature: "pub end_at: stylus_sdk::storage::StorageUint<256, 4>,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores whether the auction has started",
+            rust_signature: "pub started: stylus_sdk::storage::StorageBool,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores whether the auction has ended",
+            rust_signature: "pub ended: stylus_sdk::storage::StorageBool,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the address of the highest bidder",
+            rust_signature: "pub highest_bidder: stylus_sdk::storage::StorageAddress,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the highest bid amount",
+            rust_signature: "pub highest_bid: stylus_sdk::storage::StorageUint<256, 4>,",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Stores the latest image ID",
+            rust_signature: "pub latest_image_id: stylus_sdk::storage::StorageUint<256, 4>,",
+            solidity_signature: "",
+        },
+    ],
+    read_functions: [
+        ComponentDetails {
+            description: "Returns the current active prompt in the auction\n        @return The active prompt string",
+            rust_signature: "pub fn active_prompt(&self) -> Result<String, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the image URI for a given image ID\n        @param image_id The ID of the image to query\n        @return The image URI string",
+            rust_signature: "pub fn get_image(&self, image_id: U256) -> Result<String, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the image ID owned by a given address\n        @param owner The address of the owner\n        @return The image ID owned by the address",
+            rust_signature: "pub fn get_image_owner(&self, owner: Address) -> Result<U256, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the address of the AI seller\n        @return The seller's address",
+            rust_signature: "pub fn ai_seller(&self) -> Result<Address, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the end time of the auction\n        @return The auction end timestamp",
+            rust_signature: "pub fn end_at(&self) -> Result<U256, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns whether the auction has started\n        @return True if started, false otherwise",
+            rust_signature: "pub fn started(&self) -> Result<bool, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns whether the auction has ended\n        @return True if ended, false otherwise",
+            rust_signature: "pub fn ended(&self) -> Result<bool, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the address of the highest bidder\n        @return The highest bidder's address",
+            rust_signature: "pub fn highest_bidder(&self) -> Result<Address, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the highest bid amount\n        @return The highest bid value",
+            rust_signature: "pub fn highest_bid(&self) -> Result<U256, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Returns the bid amount for a specific bidder\n        @param bidder The address of the bidder\n        @return The bid amount for the bidder",
+            rust_signature: "pub fn bids(&self, bidder: Address) -> Result<U256, EnglishAuctionError>",
+            solidity_signature: "",
+        },
+    ],
+    write_functions: [
+        ComponentDetails {
+            description: "Initializes the auction contract\n        @param starting_bid The minimum starting bid amount\n        @dev Can only be called once",
+            rust_signature: "pub fn initialize(&mut self, starting_bid: U256) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Starts the auction\n        @dev Can only be called by the seller",
+            rust_signature: "pub fn start(&mut self) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Places a bid in the auction\n        @param prompt The prompt string for the AI art generation\n        @dev Must send ETH value higher than current highest bid",
+            rust_signature: "pub fn bid(&mut self, prompt: String) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Updates the image generation status\n        @param token_id The ID of the token being generated\n        @param active Whether generation is active or complete\n        @dev Can only be called by the AI seller",
+            rust_signature: "pub fn image_generation_status(&mut self, token_id: U256, active: bool) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Allows bidders to withdraw their bid amount\n        @dev Can be called by any bidder to retrieve their funds",
+            rust_signature: "pub fn withdraw(&mut self) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+        ComponentDetails {
+            description: "Ends the auction\n        @dev Can only be called by the seller after the auction duration has passed",
+            rust_signature: "pub fn end<S: TopLevelStorage + BorrowMut<Self>>(storage: &mut S) -> Result<(), EnglishAuctionError>",
+            solidity_signature: "",
+        },
+    ],
+}
