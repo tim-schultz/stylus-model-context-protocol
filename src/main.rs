@@ -1,23 +1,19 @@
-use alloy::{
-    primitives::Address,
-    providers::RootProvider,
-    rpc::client::RpcClient,
-    transports::{http, BoxTransport},
-};
+use alloy::{providers::RootProvider, transports::BoxTransport};
 use anyhow::{Context, Result};
 use contract_components::ContractComponents;
 use contract_interactions::ContractInteraction;
 use eng_assistant::assistant::Assistant;
 use env_logger::Env;
 use log::info;
-use std::str::FromStr;
-use url::Url;
 
 use std::env;
 use stylus_context_provider::StylusContract;
 
 mod contract_components;
 mod contract_interactions;
+mod prompts;
+
+use prompts::SMART_CONTRACT_PARSER_SYSTEM_PROMPT;
 
 pub const MODEL: &str = "claude-3-5-sonnet-20241022";
 pub const TASK_COMPLETE: &str = "TASK_COMPLETE";
@@ -26,138 +22,15 @@ pub const TASK_COMPLETE: &str = "TASK_COMPLETE";
 async fn main() -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
+    // CLI Param
     let args: Vec<String> = env::args().collect();
     let dir = args
         .get(1)
         .map(|s| s.as_str())
         .expect("You must pass a directory");
 
-    let planning_system_prompt = r#"
-    You are Claude, an AI assistant powered by Anthropic's Claude-3.5-Sonnet model, specializing in software architecture. Your capabilities include:
-    - You are an expert coding assistant. 
-    - You specialize in Solidity and Rust programming languages.
-    - You are terse, efficient, and without emotion. You never apologize. When asked to do something you do it without preamble. 
-
-    You will be given an outline of an arbitrum stylus smart contract which is written in Rust. It will have the following format:
-    <rust_smart_contract>
-        pub mod stylus_hello_world ....
-    </rust_smart_contract>
-
-    You are tasked with identifying the following implementations: Events, Errors, Storage Variables, read functions, and write functions. Below you will find examples of how each implementation may be presented:
-
-    Event:
-    <example>
-        /// Event with signature `Bid(address,uint256,string)` and selector `0xf22665033e06efbfec151f6a7c6c2d108d74c528a69e4f1f98e5101219c5f2fc`.
-        /// ```solidity
-        /// event Bid(address indexed sender, uint256 amount, string prompt);
-        /// ```
-    </example>
-
-    Error:
-    <example>
-        /// Custom error with signature `AlreadyStarted()` and selector `0x1fbde445`.
-        /// ```solidity
-        /// error AlreadyStarted();
-        /// ```
-    </example>
-
-    Storage Variable:
-    <example>
-        pub active_prompt: stylus_sdk::storage::StorageString,
-    </example>
-
-    Read Function:
-    <example>
-        /// Returns the current active prompt in the auction
-        /// @return The active prompt string
-        pub fn active_prompt(&self) -> Result<String, EnglishAuctionError> {}
-    </example>
-
-    Write Function:
-    <example>
-        /// Starts the auction
-        /// @dev Can only be called by the seller
-        pub fn start(&mut self) -> Result<(), EnglishAuctionError> {}
-    </example>
-
-    For each occurrence of Events, Errors, Storage Variables, read functions, and write functions you will output the corresponding block in the format listed below:
-
-    Desired Output:
-    <event>
-        <description>
-            Event with signature `Bid(address,uint256,string)` and selector `0xf22665033e06efbfec151f6a7c6c2d108d74c528a69e4f1f98e5101219c5f2fc`.
-        </description>
-        <signature>
-            event Bid(address indexed sender, uint256 amount, string prompt);
-        </signature>
-    </event>
-
-    <error>
-        <description>
-            Custom error with signature `AlreadyStarted()` and selector `0x1fbde445`.
-        </description>
-        <signature>
-            error AlreadyStarted();
-        </signature>
-    </error>
-
-    <storage_variable>
-        <description></description>
-        <signature>
-            pub active_prompt: stylus_sdk::storage::StorageString,
-        </signature>
-    </storage_variable>
-
-    <read_function>
-        <description>
-            Returns the current active prompt in the auction
-            @return The active prompt string
-        </description>
-        <signature>
-            pub fn active_prompt(&self) -> Result<String, EnglishAuctionError> {}
-        </signature>
-    </read_function>
-
-    <write_function>
-        <description>
-            Starts the auction
-            @dev Can only be called by the seller
-        </description>
-        <signature>
-            pub fn start(&mut self) -> Result<(), EnglishAuctionError> {}
-        </signature>
-    </write_function>
-
-    Important: Output the implementations of every Event, Error, Storage Variable, read function, and write function in the format outlined above.
-    "#;
-
-    let mut assistant = Assistant::new(
-        MODEL,
-        false,
-        None,
-        None,
-        Some(planning_system_prompt.to_string()),
-    )
-    .context("Failed to initialize Claude")?;
-    info!("Claude instance initialized with model: {}", MODEL);
-
-    let address = Address::from_str(std::env::var("CONTRACT_ADDRESS").unwrap().as_str())?;
-    let rpc_url = std::env::var("RPC_URL").expect("RPC_URL must be set");
-    let rpc_url = Url::parse(&rpc_url).expect("Failed to parse RPC URL");
-    let transport = http::Http::new(rpc_url);
-    let boxed_transport = BoxTransport::new(transport);
-    let client = RpcClient::new(boxed_transport, false);
-    let provider = RootProvider::new(client);
-
-    let contract_interaction = ContractInteraction::<RootProvider<BoxTransport>>::new(
-        "interaction".to_string(),
-        address,
-        provider,
-    )?;
-    dbg!(contract_interaction.get_abi());
-
     // Execute cargo stylus export-abi command
-    let output = std::process::Command::new("cargo")
+    let abi_export = std::process::Command::new("cargo")
         .arg("stylus")
         .arg("export-abi")
         .current_dir(dir)
@@ -165,18 +38,37 @@ async fn main() -> Result<()> {
         .context("Failed to execute cargo stylus export-abi")?;
 
     let abi_output =
-        String::from_utf8(output.stdout).context("Failed to parse command output as UTF-8")?;
+        String::from_utf8(abi_export.stdout).context("Failed to parse command output as UTF-8")?;
 
+    // Instantiate Smart Contract Interaction
+    let contract_interaction = ContractInteraction::<RootProvider<BoxTransport>>::new(&abi_output)?;
+    let abi = contract_interaction.get_abi();
+    dbg!(&abi);
+
+    // Instantiate Stylus Contract - Used to parse rust smart contract code and get as much information about the contract as possible
     let contract = StylusContract::new(dir);
+    // Use ruskel to parse the rust API from the contract and get a skeleton of the contract and comments
     let contract_skeleton = contract.analyze()?;
+
+    // Instantiate Claude Assistant Client
+    let mut stylus_smart_contract_parser_assistant = Assistant::new(
+        MODEL,
+        false,
+        None,
+        None,
+        Some(SMART_CONTRACT_PARSER_SYSTEM_PROMPT.to_string()),
+    )
+    .context("Failed to initialize Claude")?;
+    info!("Claude instance initialized with model: {}", MODEL);
+
+    // Ask claude to analyze the rust smart contract and provide a detailed report
     let prompt = format!(
         "Claude, analyze the following Rust smart contract: \n{}",
         contract_skeleton
     );
-
-    let output_path = format!("{}/analysis.md", dir);
-    info!("Generating new analysis");
-    let response = assistant.send_message(&prompt, true).await?;
+    let response = stylus_smart_contract_parser_assistant
+        .send_message(&prompt, true)
+        .await?;
     info!("Response: {:?}", response);
     let text = response
         .content
@@ -187,8 +79,10 @@ async fn main() -> Result<()> {
         })
         .context("No text content in response")?;
 
+    // Use structured output from Claude Assistant to parse different aspects of the contract
     let components = ContractComponents::new(&text, Some(&abi_output));
-    components.generate_markdown(&output_path)?;
+
+    components.generate_markdown("./test.md")?;
 
     Ok(())
 }

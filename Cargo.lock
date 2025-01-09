@@ -6399,6 +6399,7 @@ dependencies = [
  "alloy-transport",
  "anthropic-sdk",
  "anyhow",
+ "dotenv",
  "eng-assistant",
  "env_logger",
  "libruskel",
