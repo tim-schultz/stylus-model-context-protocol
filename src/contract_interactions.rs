@@ -1,8 +1,10 @@
 use alloy::{
     contract::{ContractInstance, Interface},
+    dyn_abi::{DynSolValue, JsonAbiExt},
     json_abi::JsonAbi,
-    primitives::Address,
+    primitives::{Address, Bytes},
     providers::{Provider, RootProvider},
+    rpc::types::{TransactionInput, TransactionRequest},
     transports::BoxTransport,
 };
 use anyhow::{anyhow, Result};
@@ -16,6 +18,53 @@ pub struct ContractInteraction<P: Provider> {
 }
 
 impl<P: Provider> ContractInteraction<P> {
+    /// Calls a contract function with given parameters and value
+    #[allow(dead_code)]
+    async fn call_function(
+        &self,
+        function_name: &str,
+        params: Option<Vec<String>>,
+        value: Option<u128>,
+    ) -> Result<()> {
+        let functions = self
+            .contract_instance
+            .abi()
+            .function(function_name)
+            .ok_or_else(|| anyhow!("Function not found: {}", function_name))?;
+        let func = functions
+            .first()
+            .ok_or_else(|| anyhow!("No function implementation found"))?;
+
+        let provider = self.contract_instance.provider();
+        let root_provider = provider.root();
+
+        // Encode function call with parameters
+        // Convert string parameters to DynSolValue
+        let sol_params: Vec<DynSolValue> = params
+            .unwrap_or_default()
+            .iter()
+            .map(|s| DynSolValue::String(s.clone()))
+            .collect();
+
+        let call_data = func
+            .abi_encode_input_raw(&sol_params)
+            .map_err(|e| anyhow!("Failed to encode parameters: {}", e))?;
+
+        let tx_input = TransactionInput::new(Bytes::from(call_data));
+
+        // Create transaction request
+        let tx = TransactionRequest::default()
+            .to(*self.contract_instance.address())
+            .input(tx_input)
+            .value(alloy::primitives::Uint::from(value.unwrap_or_default()));
+
+        root_provider
+            .call(&tx)
+            .await
+            .map_err(|e| anyhow!("Transaction failed: {}", e))?;
+
+        Ok(())
+    }
     pub fn new(interface: String, address: Address, provider: P) -> Result<Self> {
         let human_readable_abi =
             ContractInteraction::<RootProvider<BoxTransport>>::interface_to_human_readable(
