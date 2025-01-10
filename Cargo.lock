@@ -6402,6 +6402,7 @@ dependencies = [
  "dotenv",
  "eng-assistant",
  "env_logger",
+ "home",
  "libruskel",
  "libtenx",
  "log",
@@ -6411,6 +6412,8 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
  "url",
 ]
 
