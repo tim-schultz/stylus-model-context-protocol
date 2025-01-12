@@ -2,11 +2,10 @@ use alloy::{providers::RootProvider, transports::BoxTransport};
 use anyhow::{Context, Result};
 use contract_components::ContractComponents;
 use contract_interactions::ContractInteraction;
+use dotenv::dotenv;
 use eng_assistant::assistant::Assistant;
 use env_logger::Env;
 use log::info;
-
-use std::env;
 use stylus_context_provider::StylusContract;
 
 mod contract_components;
@@ -20,20 +19,17 @@ pub const TASK_COMPLETE: &str = "TASK_COMPLETE";
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    dotenv().ok();
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
-    // CLI Param
-    let args: Vec<String> = env::args().collect();
-    let dir = args
-        .get(1)
-        .map(|s| s.as_str())
-        .expect("You must pass a directory");
+    let dir = std::env::var("CONTRACT_DIRECTORY")
+        .expect("You must specify the directory that that contract lives in");
 
     // Execute cargo stylus export-abi command
     let abi_export = std::process::Command::new("cargo")
         .arg("stylus")
         .arg("export-abi")
-        .current_dir(dir)
+        .current_dir(dir.clone())
         .output()
         .context("Failed to execute cargo stylus export-abi")?;
 
@@ -41,7 +37,7 @@ async fn main() -> Result<()> {
         String::from_utf8(abi_export.stdout).context("Failed to parse command output as UTF-8")?;
 
     // Instantiate Stylus Contract - Used to parse rust smart contract code and get as much information about the contract as possible
-    let contract = StylusContract::new(dir);
+    let contract = StylusContract::new(&dir);
     // Use ruskel to parse the rust API from the contract and get a skeleton of the contract and comments
     let contract_skeleton = contract.analyze()?;
 

@@ -1,0 +1,200 @@
+{
+  "tools": [
+    {
+      "description": "Returns the current active prompt in the auction\n        @return The active prompt string",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "activePrompt"
+    },
+    {
+      "description": "Returns the address of the AI seller\n        @return The seller's address",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "aiSeller"
+    },
+    {
+      "description": "Places a bid in the auction\n        @param prompt The prompt string for the AI art generation\n        @dev Must send ETH value higher than current highest bid",
+      "inputSchema": {
+        "properties": {
+          "input": {
+            "description": "Parameter of type string",
+            "type": "string"
+          },
+          "value": {
+            "description": "Amount of native currency to send with transaction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "value"
+        ],
+        "type": "object"
+      },
+      "name": "bid"
+    },
+    {
+      "description": "Returns the bid amount for a specific bidder\n        @param bidder The address of the bidder\n        @return The bid amount for the bidder",
+      "inputSchema": {
+        "properties": {
+          "bidder": {
+            "description": "Parameter of type address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "bidder"
+        ],
+        "type": "object"
+      },
+      "name": "bids"
+    },
+    {
+      "description": "Calls the end function",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "end"
+    },
+    {
+      "description": "Returns the end time of the auction\n        @return The auction end timestamp",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "endAt"
+    },
+    {
+      "description": "Returns whether the auction has ended\n        @return True if ended, false otherwise",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "ended"
+    },
+    {
+      "description": "Returns the image URI for a given image ID\n        @param image_id The ID of the image to query\n        @return The image URI string",
+      "inputSchema": {
+        "properties": {
+          "image_id": {
+            "description": "Parameter of type uint256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image_id"
+        ],
+        "type": "object"
+      },
+      "name": "getImage"
+    },
+    {
+      "description": "Returns the image ID owned by a given address\n        @param owner The address of the owner\n        @return The image ID owned by the address",
+      "inputSchema": {
+        "properties": {
+          "owner": {
+            "description": "Parameter of type address",
+            "type": "string"
+          }
+        },
+        "required": [
+          "owner"
+        ],
+        "type": "object"
+      },
+      "name": "getImageOwner"
+    },
+    {
+      "description": "Returns the highest bid amount\n        @return The highest bid value",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "highestBid"
+    },
+    {
+      "description": "Returns the address of the highest bidder\n        @return The highest bidder's address",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "highestBidder"
+    },
+    {
+      "description": "Updates the image generation status\n        @param token_id The ID of the token being generated\n        @param active Whether generation is active or complete\n        @dev Can only be called by the AI seller",
+      "inputSchema": {
+        "properties": {
+          "active": {
+            "description": "Parameter of type bool",
+            "type": "string"
+          },
+          "token_id": {
+            "description": "Parameter of type uint256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token_id",
+          "active"
+        ],
+        "type": "object"
+      },
+      "name": "imageGenerationStatus"
+    },
+    {
+      "description": "Initializes the auction contract\n        @param starting_bid The minimum starting bid amount\n        @dev Can only be called once",
+      "inputSchema": {
+        "properties": {
+          "starting_bid": {
+            "description": "Parameter of type uint256",
+            "type": "string"
+          }
+        },
+        "required": [
+          "starting_bid"
+        ],
+        "type": "object"
+      },
+      "name": "initialize"
+    },
+    {
+      "description": "Starts the auction\n        @dev Can only be called by the seller",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "start"
+    },
+    {
+      "description": "Returns whether the auction has started\n        @return True if started, false otherwise",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "started"
+    },
+    {
+      "description": "Allows bidders to withdraw their bid amount\n        @dev Can be called by any bidder to retrieve their funds",
+      "inputSchema": {
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "name": "withdraw"
+    }
+  ]
+}

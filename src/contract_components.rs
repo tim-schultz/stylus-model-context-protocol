@@ -23,6 +23,7 @@ pub struct ContractComponents {
 }
 
 impl ContractComponents {
+    #[allow(dead_code)]
     pub fn new(response: &str, _interface: Option<&str>) -> Self {
         let mut components = Self::default();
 

@@ -1,6 +1,9 @@
 use libruskel::{Result, Ruskel};
 
-mod tools;
+pub mod contract_components;
+pub mod contract_interactions;
+pub mod prompts;
+pub mod tools;
 
 /// A contract for managing Rust API documentation using Ruskel
 ///

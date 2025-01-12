@@ -1,0 +1,353 @@
+I'll analyze the smart contract and identify all the implementations in the requested format.
+
+Events:
+<event>
+    <description>
+        Event with signature `Start()` and selector `0x1b55ba3aa851a46be3b365aee5b5c140edd620d578922f3e8466d2cbd96f954b`.
+    </description>
+    <signature>
+        event Start();
+    </signature>
+</event>
+
+<event>
+    <description>
+        Event with signature `Bid(address,uint256,string)` and selector `0xf22665033e06efbfec151f6a7c6c2d108d74c528a69e4f1f98e5101219c5f2fc`.
+    </description>
+    <signature>
+        event Bid(address indexed sender, uint256 amount, string prompt);
+    </signature>
+</event>
+
+<event>
+    <description>
+        Event with signature `Withdraw(address,uint256)` and selector `0x884edad9ce6fa2440d8a54cc123490eb96d2768479d49ff9c7366125a9424364`.
+    </description>
+    <signature>
+        event Withdraw(address indexed bidder, uint256 amount);
+    </signature>
+</event>
+
+<event>
+    <description>
+        Event with signature `End(address,uint256,string,uint256)` and selector `0xe8480788631daab178cfa9a790c92677f4c2c765c9af9f0117a860cfd9c2fca1`.
+    </description>
+    <signature>
+        event End(address winner, uint256 amount, string prompt, uint256 image_id);
+    </signature>
+</event>
+
+<event>
+    <description>
+        Event with signature `ImageGenerationUpdate(uint256,bool)` and selector `0x5b002366b3aba9ba11e2ce224a9f3cd5d3bdc65a863f866e5fd0a272d3e8b99c`.
+    </description>
+    <signature>
+        event ImageGenerationUpdate(uint256 token_id, bool active);
+    </signature>
+</event>
+
+Errors:
+<error>
+    <description>
+        Custom error with signature `AlreadyInitialized()` and selector `0x0dc149f0`.
+    </description>
+    <signature>
+        error AlreadyInitialized();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `AlreadyStarted()` and selector `0x1fbde445`.
+    </description>
+    <signature>
+        error AlreadyStarted();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `NotSeller()` and selector `0x5ec82351`.
+    </description>
+    <signature>
+        error NotSeller();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `AuctionEnded()` and selector `0xa0e92984`.
+    </description>
+    <signature>
+        error AuctionEnded();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `BidTooLow()` and selector `0xa0d26eb6`.
+    </description>
+    <signature>
+        error BidTooLow();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `NotStarted()` and selector `0x6f312cbd`.
+    </description>
+    <signature>
+        error NotStarted();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `NotEnded()` and selector `0xd3018d18`.
+    </description>
+    <signature>
+        error NotEnded();
+    </signature>
+</error>
+
+<error>
+    <description>
+        Custom error with signature `UnAuthorizedUpdate()` and selector `0x1714dd95`.
+    </description>
+    <signature>
+        error UnAuthorizedUpdate();
+    </signature>
+</error>
+
+Storage Variables:
+<storage_variable>
+    <description>Stores the current active prompt in the auction</description>
+    <signature>
+        pub active_prompt: stylus_sdk::storage::StorageString,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the last prompt used in the auction</description>
+    <signature>
+        pub last_prompt: stylus_sdk::storage::StorageString,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the address of the AI seller</description>
+    <signature>
+        pub ai_seller: stylus_sdk::storage::StorageAddress,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the auction end timestamp</description>
+    <signature>
+        pub end_at: stylus_sdk::storage::StorageUint<256, 4>,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores whether the auction has started</description>
+    <signature>
+        pub started: stylus_sdk::storage::StorageBool,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores whether the auction has ended</description>
+    <signature>
+        pub ended: stylus_sdk::storage::StorageBool,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the address of the highest bidder</description>
+    <signature>
+        pub highest_bidder: stylus_sdk::storage::StorageAddress,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the highest bid amount</description>
+    <signature>
+        pub highest_bid: stylus_sdk::storage::StorageUint<256, 4>,
+    </signature>
+</storage_variable>
+
+<storage_variable>
+    <description>Stores the latest image ID</description>
+    <signature>
+        pub latest_image_id: stylus_sdk::storage::StorageUint<256, 4>,
+    </signature>
+</storage_variable>
+
+Read Functions:
+<read_function>
+    <description>
+        Returns the current active prompt in the auction
+        @return The active prompt string
+    </description>
+    <signature>
+        pub fn active_prompt(&self) -> Result<String, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the image URI for a given image ID
+        @param image_id The ID of the image to query
+        @return The image URI string
+    </description>
+    <signature>
+        pub fn get_image(&self, image_id: U256) -> Result<String, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the image ID owned by a given address
+        @param owner The address of the owner
+        @return The image ID owned by the address
+    </description>
+    <signature>
+        pub fn get_image_owner(&self, owner: Address) -> Result<U256, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the address of the AI seller
+        @return The seller's address
+    </description>
+    <signature>
+        pub fn ai_seller(&self) -> Result<Address, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the end time of the auction
+        @return The auction end timestamp
+    </description>
+    <signature>
+        pub fn end_at(&self) -> Result<U256, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns whether the auction has started
+        @return True if started, false otherwise
+    </description>
+    <signature>
+        pub fn started(&self) -> Result<bool, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns whether the auction has ended
+        @return True if ended, false otherwise
+    </description>
+    <signature>
+        pub fn ended(&self) -> Result<bool, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the address of the highest bidder
+        @return The highest bidder's address
+    </description>
+    <signature>
+        pub fn highest_bidder(&self) -> Result<Address, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the highest bid amount
+        @return The highest bid value
+    </description>
+    <signature>
+        pub fn highest_bid(&self) -> Result<U256, EnglishAuctionError>
+    </signature>
+</read_function>
+
+<read_function>
+    <description>
+        Returns the bid amount for a specific bidder
+        @param bidder The address of the bidder
+        @return The bid amount for the bidder
+    </description>
+    <signature>
+        pub fn bids(&self, bidder: Address) -> Result<U256, EnglishAuctionError>
+    </signature>
+</read_function>
+
+Write Functions:
+<write_function>
+    <description>
+        Initializes the auction contract
+        @param starting_bid The minimum starting bid amount
+        @dev Can only be called once
+    </description>
+    <signature>
+        pub fn initialize(&mut self, starting_bid: U256) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>
+
+<write_function>
+    <description>
+        Starts the auction
+        @dev Can only be called by the seller
+    </description>
+    <signature>
+        pub fn start(&mut self) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>
+
+<write_function>
+    <description>
+        Places a bid in the auction
+        @param prompt The prompt string for the AI art generation
+        @dev Must send ETH value higher than current highest bid
+    </description>
+    <signature>
+        pub fn bid(&mut self, prompt: String) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>
+
+<write_function>
+    <description>
+        Updates the image generation status
+        @param token_id The ID of the token being generated
+        @param active Whether generation is active or complete
+        @dev Can only be called by the AI seller
+    </description>
+    <signature>
+        pub fn image_generation_status(&mut self, token_id: U256, active: bool) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>
+
+<write_function>
+    <description>
+        Allows bidders to withdraw their bid amount
+        @dev Can be called by any bidder to retrieve their funds
+    </description>
+    <signature>
+        pub fn withdraw(&mut self) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>
+
+<write_function>
+    <description>
+        Ends the auction
+        @dev Can only be called by the seller after the auction duration has passed
+    </description>
+    <signature>
+        pub fn end<S: TopLevelStorage + BorrowMut<Self>>(storage: &mut S) -> Result<(), EnglishAuctionError>
+    </signature>
+</write_function>

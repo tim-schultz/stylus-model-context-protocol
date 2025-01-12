@@ -4,18 +4,17 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "file-context-server-test"
+name = "context-server"
 path = "src/bin/context_server.rs" 
 
 [dependencies]
 anyhow = "1.0.95"
 libruskel = "0.0.9"
-libtenx = {path = "../tenx/crates/libtenx"}
-mcp-sdk = {path = "../mcp-sdk"}
+mcp-sdk = {git = "https://github.com/AntigmaLabs/mcp-sdk.git"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 mcp-client-rs = { git = "https://github.com/tim-schultz/mcp-client-rs.git" }
-eng-assistant = { path = "../eng-assistant" }
+eng-assistant = { git = "https://github.com/tim-schultz/eng-assistant.git" }
 log = "0.4.22"
 env_logger = "0.11.4"
 tokio = { version = "1.0", features = ["full"] }
@@ -28,3 +27,5 @@ dotenv = "0.15.0"
 tracing-subscriber = "0.3"
 tracing = "0.1"
 home = "0.5.11"
+walkdir = "2.5.0"
+lazy_static = "1.4.0"

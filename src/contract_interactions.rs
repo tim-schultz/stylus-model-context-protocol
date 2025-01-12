@@ -52,6 +52,7 @@ impl<P: Provider> ContractInteraction<P> {
         Ok(instance)
     }
 
+    #[allow(dead_code)]
     pub fn build_contract_claude_tool_definitions(&self) -> Result<Value> {
         use std::fs::write;
         let mut tools = Vec::<Value>::new();
@@ -115,13 +116,31 @@ impl<P: Provider> ContractInteraction<P> {
                 .map(|f| f.description.clone())
                 .unwrap_or_else(|| format!("Calls the {} function", name));
 
-            // Collect required fields after all properties are added
-            let required_fields = properties.keys().cloned().collect::<Vec<_>>();
+            // Extract parameter names from function inputs for required fields
+            let mut required_fields: Vec<String> = function
+                .inputs
+                .iter()
+                .map(|param| {
+                    if param.name.is_empty() {
+                        "input".to_string()
+                    } else {
+                        param.name.clone()
+                    }
+                })
+                .collect();
+
+            // Add value to required fields if function is payable
+            if matches!(
+                function.state_mutability,
+                alloy::json_abi::StateMutability::Payable
+            ) {
+                required_fields.push("value".to_string());
+            }
 
             tools.push(json!({
                 "name": name,
                 "description": description,
-                "input_schema": {
+                "inputSchema": {
                     "type": "object",
                     "properties": properties,
                     "required": required_fields
@@ -129,11 +148,14 @@ impl<P: Provider> ContractInteraction<P> {
             }));
         }
 
-        let result = Value::Array(tools);
+        let result = Value::Object(serde_json::Map::from_iter(vec![(
+            "tools".to_string(),
+            Value::Array(tools),
+        )]));
 
         // Write the tools to a JSON file
         write(
-            "contract_tools.json",
+            "read_write_contract_tools.json",
             serde_json::to_string_pretty(&result)?,
         )?;
 
@@ -142,7 +164,7 @@ impl<P: Provider> ContractInteraction<P> {
 
     /// Calls a contract function with given parameters and value
     #[allow(dead_code)]
-    async fn call_function(
+    pub async fn call_function(
         &self,
         function_name: &str,
         params: Option<Vec<String>>,
@@ -157,11 +179,12 @@ impl<P: Provider> ContractInteraction<P> {
             .first()
             .ok_or_else(|| anyhow!("No function implementation found"))?;
 
-        let provider = self.contract_instance.provider();
-        let root_provider = provider.root();
+        // Get private key from environment
+        let private_key = std::env::var("PRIVATE_KEY").expect("PRIVATE_KEY must be set");
+        let signer: alloy::signers::local::PrivateKeySigner = private_key.parse()?;
+        let wallet = alloy::network::EthereumWallet::from(signer);
 
         // Encode function call with parameters
-        // Convert string parameters to DynSolValue
         let sol_params: Vec<DynSolValue> = params
             .unwrap_or_default()
             .iter()
@@ -180,10 +203,16 @@ impl<P: Provider> ContractInteraction<P> {
             .input(tx_input)
             .value(alloy::primitives::Uint::from(value.unwrap_or_default()));
 
-        root_provider
-            .call(&tx)
-            .await
-            .map_err(|e| anyhow!("Transaction failed: {}", e))?;
+        // Create a new HTTP provider with the wallet
+        let rpc_url = std::env::var("RPC_URL").expect("RPC_URL must be set");
+        let url = Url::parse(&rpc_url).expect("Failed to parse RPC URL");
+        let provider = alloy::providers::ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(wallet)
+            .on_http(url);
+
+        // Send transaction and wait for confirmation
+        provider.send_transaction(tx).await?.watch().await?;
 
         Ok(())
     }
@@ -366,12 +395,12 @@ mod tests {
         let tools = interaction
             .build_contract_claude_tool_definitions()
             .unwrap();
-        let tools_array = tools.as_array().unwrap();
+        let tools_array = tools.get("tools").and_then(|t| t.as_array()).unwrap();
 
         // Check the bid function properties
         let bid_tool = &tools_array[0];
-        let properties = bid_tool["input_schema"]["properties"].as_object().unwrap();
-        let required = bid_tool["input_schema"]["required"].as_array().unwrap();
+        let properties = bid_tool["inputSchema"]["properties"].as_object().unwrap();
+        let required = bid_tool["inputSchema"]["required"].as_array().unwrap();
 
         // Verify value parameter exists
         assert!(properties.contains_key("value"));
@@ -414,7 +443,7 @@ mod tests {
         let tools = interaction
             .build_contract_claude_tool_definitions()
             .unwrap();
-        let tools_array = tools.as_array().unwrap();
+        let tools_array = tools.get("tools").and_then(|t| t.as_array()).unwrap();
 
         // Test number of tools matches number of functions in ABI
         assert_eq!(tools_array.len(), 3);
@@ -433,7 +462,7 @@ mod tests {
             active_prompt_tool["description"],
             "Returns the current active prompt in the auction"
         );
-        assert!(active_prompt_tool["input_schema"]["properties"]
+        assert!(active_prompt_tool["inputSchema"]["properties"]
             .as_object()
             .unwrap()
             .is_empty());
@@ -444,13 +473,13 @@ mod tests {
             bids_tool["description"],
             "Returns the bid amount for a specific bidder"
         );
-        let bids_props = bids_tool["input_schema"]["properties"].as_object().unwrap();
+        let bids_props = bids_tool["inputSchema"]["properties"].as_object().unwrap();
         assert!(bids_props["bidder"]["type"].as_str().unwrap() == "string");
 
         // Test bid
         let bid_tool = find_tool("bid");
         assert_eq!(bid_tool["description"], "Places a bid in the auction");
-        let bid_props = bid_tool["input_schema"]["properties"].as_object().unwrap();
+        let bid_props = bid_tool["inputSchema"]["properties"].as_object().unwrap();
         assert!(bid_props.contains_key("prompt"));
         assert_eq!(bid_props["prompt"]["type"].as_str().unwrap(), "string");
     }
